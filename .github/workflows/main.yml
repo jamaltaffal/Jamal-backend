@@ -38,7 +38,7 @@ jobs:
             context: .
             file: Dockerfile
             push: true  
-            tags: ghcr.io/jamaltaffal/jamal-bachend:latest
+            tags: ghcr.io/jamaltaffal/jamal-backend:latest
 
   deploy:
    runs-on: ubuntu-latest
