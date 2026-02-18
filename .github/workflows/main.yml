@@ -24,10 +24,13 @@ jobs:
 
       - name: Deploy Postgres
         run: |
-          cd jamal-k8s/
-          kubectl apply -f postgres/
+          kubectl apply -f postgres/secrets.yaml
+          kubectl apply -f postgres/configmap.yaml
+          kubectl apply -f postgres/pvc.yaml
+          kubectl apply -f postgres/deployment.yaml
+          kubectl apply -f postgres/service.yaml
 
       - name: Deploy Backend
         run: |
-          cd jamal-k8s/
-          kubectl apply -f backend/
+          kubectl apply -f backend/deployment.yaml
+          kubectl apply -f backend/service.yaml
