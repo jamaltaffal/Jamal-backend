@@ -1,36 +1,61 @@
-name: Deploy Backend
+name: Deploy to backend 
 
 on:
-  push:
+ push:
     branches:
       - main
-
 jobs:
+  build:
+    runs-on: self-hosted
+    environment: backend
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.JAMALTOKEN}}
+          
+
+      - name: Build Docker image   
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile
+          push: true  
+          tags: ghcr.io/jamaltaffal/jamal-backend:latest
+
   deploy:
     runs-on: self-hosted
     steps:
-      - name: Checkout Repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'v1.28.0'
-
-      - name: Configure kubeconfig
+      - name: Set KUBECONFIG
         run: |
-          echo "${{ secrets.KUBECONFIG_CONTENT }}" > kubeconfig
-          export KUBECONFIG=$PWD/kubeconfig
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          kubectl config view
 
-      - name: Deploy Postgres
+      - name: Rollout Restart Frontend
         run: |
-          kubectl apply -f postgres/secrets.yaml
-          kubectl apply -f postgres/configmap.yaml
-          kubectl apply -f postgres/pvc.yaml
-          kubectl apply -f postgres/deployment.yaml
-          kubectl apply -f postgres/service.yaml
+          kubectl rollout restart frontend/ -n jamal
 
-      - name: Deploy Backend
+      - name: Rollout Restart Backend
         run: |
-          kubectl apply -f backend/deployment.yaml
-          kubectl apply -f backend/service.yaml
+          kubectl rollout restart backend/ -n jamal
